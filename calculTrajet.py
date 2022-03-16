@@ -11,8 +11,8 @@ class Constant(object):
 def vitesseMax(a_max):
     d1 = 0.3
     d2 = 0.1
-    s= np.sqrt((d1-d2)/a_max)
-    return (d1-d2)/s
+    v= np.sqrt(2*(d1-d2)*a_max)
+    return v
 
 def rayonRoue(a_max):
     angle_int = np.arctan(Constant.longueur_roue/(Constant.rayon-Constant.largeur_roue/2))
@@ -38,7 +38,6 @@ def getAccelerationTournant(rayon, accMax):
     return accTanFinal, accNormFinal
 
 def ligneDroiteAvance(xInital, yInitial, vInitial, distance):
-
     accMax = getAccelerationMax()
     vMax = vitesseMax(accMax)
     array = [[xInital], [yInitial]]
@@ -68,28 +67,27 @@ def ligneDroiteAvance(xInital, yInitial, vInitial, distance):
 
     return array, vitesseActuel
 
-def ligneDroiteArreter(pos_init, axe, temps):
+def ligneDroiteArreter(pos_init, axe):
     a_max = getAccelerationMax()
     v_max = vitesseMax(a_max)
-    v = v_max
-    v_last=v
-    d2 = [[], []] # [x, y]
-    t2 = []  # seconde
+    vitesseActuel = v_max
+    distance = [[], []] # [x, y]
+    index = 0
+    deltaT = 0.01
 
-    for index in range(temps*100):
-        t2.append(index * 0.01)
-        d2[np.mod(axe+1, 2)].append(pos_init[np.mod(axe+1, 2)])
-        v = v_last-a_max*t2[index]
+    while vitesseActuel > 0:
+        distance[np.mod(axe + 1, 2)].append(pos_init[np.mod(axe + 1, 2)])
+        vitesseActuel = vitesseActuel - a_max * deltaT
 
         if index == 0:
-            d2[axe].append(pos_init[axe])
-        elif v > 0:
-            d2[axe].append(d2[axe][index-1] - a_max*np.power(t2[index],2)/2+v*t2[index])
+            distance[axe].append(pos_init[axe])
         else:
-            d2[axe].append(d2[axe][index-1])
-        v_last = v
+            distance[axe].append(distance[axe][index - 1] - a_max * np.power(deltaT, 2) / 2 + vitesseActuel * deltaT)
+        index += 1
 
-    return d2, t2
+    return distance
+
+
 
 def calculTrajet():
     #Avance
@@ -97,8 +95,6 @@ def calculTrajet():
     t = [] #seconde
 
     #Arret
-
-
 
     #Tournant droit
 
@@ -108,4 +104,4 @@ def calculTrajet():
 
 if __name__ == '__main__':
     calculTrajet()
-    ligneDroiteArreter([0, 0], 0, 5)
+    ligneDroiteArreter([0, 0], 0)
