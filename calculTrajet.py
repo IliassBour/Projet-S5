@@ -28,16 +28,16 @@ def getAccelerationTournant(rayon, accMax):
     accTanFinal = 0
     for accTan in range(0, 200):
         acc = accTan*0.01
-        accTotTemp = np.sqrt(acc^2 + acc^4/rayon^2)
+        accTotTemp = np.sqrt(np.power(acc, 2) + np.power(acc, 4)/np.power(rayon, 2))
         if accTotTemp < accMax :
             accTot = accTot
             accTanFinal = acc
         else :
             break
-    accNormFinal = accTanFinal^2/rayon
+    accNormFinal = np.power(accTanFinal, 2)/rayon
     return accTanFinal, accNormFinal
 
-def ligneDroiteAvance(xInital, yInitial, vInitial, distance):
+def ligneDroiteAvance(xInital, yInitial, vInitial, distance, axe, signe):
     accMax = getAccelerationMax()
     vMax = vitesseMax(accMax)
     array = [[xInital], [yInitial]]
@@ -61,15 +61,15 @@ def ligneDroiteAvance(xInital, yInitial, vInitial, distance):
                 vitesseActuel = vMax
 
         d += vitesseActuel*deltaT
-        xPosActuel += vitesseActuel*deltaT
-        array[0].append(xPosActuel)
-        array[1].append(yPosActuel)
+        xPosActuel += signe*vitesseActuel*deltaT
+        array[axe].append(xPosActuel)
+        array[np.mod(axe + 1, 2)].append(yPosActuel)
 
     return array, vitesseActuel
 
-def ligneDroiteArreter(pos_init, axe):
-    a_max = getAccelerationMax()
-    v_max = vitesseMax(a_max)
+def ligneDroiteArreter(pos_init, axe, signe):
+    a_max = signe*getAccelerationMax()
+    v_max = signe*vitesseMax(a_max)
     vitesseActuel = v_max
     distance = [[], []] # [x, y]
     index = 0
@@ -87,7 +87,69 @@ def ligneDroiteArreter(pos_init, axe):
 
     return distance
 
+def rotation(x, y):
+    matricePassage = np.array([[0, 1], [-1, 0]])
+    coordonner = np.array([[x], [y]])
+    matriceRotation = np.matmul(matricePassage.T, coordonner)
+    return matriceRotation[0][0], matriceRotation[1][0]
 
+def getTournant(xInitial, yInitial, vitesseInitial, rayon, sens, orientation):
+    accMaxTan, _ = getAccelerationTournant(rayon, getAccelerationMax())
+    vitesseMaxTan = vitesseMax(accMaxTan)
+    d = 0
+    vitesseActuel = vitesseInitial
+    deltaT = 0.01
+    angleRadiant = 0
+    array = [[xInitial], [yInitial]]
+    xPosActuel = xInitial
+    yPosActuel = yInitial
+    dernierX = 0
+    dernierY = 0
+    while angleRadiant < np.pi / 2:
+
+        derniereVitesse = vitesseActuel
+        if vitesseActuel > vitesseMaxTan:
+            if (vitesseActuel - vitesseMaxTan) / deltaT > accMaxTan:
+                vitesseActuel = vitesseActuel - accMaxTan * deltaT
+            else:
+                vitesseActuel = vitesseMaxTan
+
+        elif vitesseActuel < vitesseMaxTan:
+            if (vitesseMaxTan - vitesseActuel) / deltaT > accMaxTan:
+                vitesseActuel = vitesseActuel + accMaxTan * deltaT
+            else:
+                vitesseActuel = vitesseMaxTan
+
+        angleRadiant += 0.5*(derniereVitesse+vitesseActuel)*deltaT/rayon
+
+        yPosActuel = rayon * np.sin(angleRadiant)+yInitial
+
+        if sens == 1:
+            xPosActuel = -1*(rayon - rayon * np.cos(angleRadiant))+xInitial
+        else:
+            xPosActuel = rayon - rayon * np.cos(angleRadiant)+xInitial
+
+        dernierX = xPosActuel
+        dernierY = yPosActuel
+
+        #Changement d'orientation
+        if orientation == 1:
+            xPos, yPos = rotation(xPosActuel, yPosActuel)
+        elif orientation == 2:
+            xPos, yPos = rotation(xPosActuel, yPosActuel)
+            xPos, yPos = rotation(xPos, yPos)
+        elif orientation == 3:
+            xPos, yPos = rotation(xPosActuel, yPosActuel)
+            xPos, yPos = rotation(xPos, yPos)
+            xPos, yPos = rotation(xPos, yPos)
+        else:
+            xPos = xPosActuel
+            yPos = yPosActuel
+
+        array[0].append(xPos)
+        array[1].append(yPos)
+
+    return array
 
 def calculTrajet():
     #Avance
@@ -104,4 +166,5 @@ def calculTrajet():
 
 if __name__ == '__main__':
     calculTrajet()
-    ligneDroiteArreter([0, 0], 0)
+    ligneDroiteArreter([0, 0], 0, 1)
+    getTournant(0,0, 0.65, 1, 0, 3)
