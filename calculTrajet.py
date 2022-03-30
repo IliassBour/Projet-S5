@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+import xlsxwriter
 
 class Constant(object):
     rayon= 1 #métre
@@ -43,9 +45,14 @@ def ligneDroiteAvance(xInital, yInitial, vInitial, distance, axe, signe):
     array = [[xInital], [yInitial]]
     d = 0;
     vitesseActuel = vInitial
-    xPosActuel = xInital
-    yPosActuel = yInitial
-    deltaT = 0.01
+    if axe==1:
+        xPosActuel = yInitial
+        yPosActuel = xInital
+    else:
+        xPosActuel = xInital
+        yPosActuel = yInitial
+
+    deltaT = 1/60
     while d < distance:
 
         if vitesseActuel > vMax:
@@ -67,15 +74,16 @@ def ligneDroiteAvance(xInital, yInitial, vInitial, distance, axe, signe):
 
     return array, vitesseActuel
 
-def ligneDroiteArreter(pos_init, axe, signe):
-    a_max = signe*getAccelerationMax()
-    v_max = signe*vitesseMax(a_max)
-    vitesseActuel = v_max
+def ligneDroiteArreter(pos_init, axe, signe): #axe entre 0 (x) et 1 (y), signe entre -1 (arière) et 1 (avant)
+    a_max = getAccelerationMax()
+    v_max = vitesseMax(a_max)
+    vitesseActuel = signe*v_max
+    a_max *= signe
     distance = [[], []] # [x, y]
     index = 0
-    deltaT = 0.01
+    deltaT = 1/60
 
-    while vitesseActuel > 0:
+    while signe*vitesseActuel > 0:
         distance[np.mod(axe + 1, 2)].append(pos_init[np.mod(axe + 1, 2)])
         vitesseActuel = vitesseActuel - a_max * deltaT
 
@@ -98,7 +106,7 @@ def getTournant(xInitial, yInitial, vitesseInitial, rayon, sens, orientation):
     vitesseMaxTan = vitesseMax(accMaxTan)
     d = 0
     vitesseActuel = vitesseInitial
-    deltaT = 0.01
+    deltaT = 1/60
     angleRadiant = 0
     array = [[xInitial], [yInitial]]
     xPosActuel = xInitial
@@ -129,17 +137,14 @@ def getTournant(xInitial, yInitial, vitesseInitial, rayon, sens, orientation):
         else:
             xPosActuel = rayon - rayon * np.cos(angleRadiant)+xInitial
 
-        dernierX = xPosActuel
-        dernierY = yPosActuel
-
         #Changement d'orientation
         if orientation == 1:
-            xPos, yPos = rotation(xPosActuel, yPosActuel)
+            xPos, yPos = rotation(xPosActuel-xInitial, yPosActuel-xInitial)
         elif orientation == 2:
             xPos, yPos = rotation(xPosActuel, yPosActuel)
             xPos, yPos = rotation(xPos, yPos)
         elif orientation == 3:
-            xPos, yPos = rotation(xPosActuel, yPosActuel)
+            xPos, yPos = rotation(xPosActuel-xInitial, yPosActuel+xInitial)
             xPos, yPos = rotation(xPos, yPos)
             xPos, yPos = rotation(xPos, yPos)
         else:
@@ -149,19 +154,40 @@ def getTournant(xInitial, yInitial, vitesseInitial, rayon, sens, orientation):
         array[0].append(xPos)
         array[1].append(yPos)
 
-    return array
+    return array, vitesseActuel
 
 def calculTrajet():
-    #Avance
-    d = []
-    t = [] #seconde
+    depla, vitesse = ligneDroiteAvance(0, 0, 0, 0.2, 0, 1)
 
-    #Arret
+    depla2, vitesse2 = getTournant(depla[0][len(depla[0])-1], depla[1][len(depla[1])-1], vitesse, 0.5, 0, 3)
 
-    #Tournant droit
+    depla3, vitesse = ligneDroiteAvance(depla2[0][len(depla2[0])-1], depla2[1][len(depla2[1])-1], vitesse2, 0.5, 1, -1)
 
-    #Tournant gauche
+    depla4 = ligneDroiteArreter([depla3[0][len(depla3[0])-1], depla3[1][len(depla3[1])-1]], 1, -1)
 
+    print(depla[0])
+    print(depla[1])
+    print(" tournant")
+    print(depla2[0])
+    print(depla2[1])
+    print("a")
+    print(depla3[0])
+    print(depla3[1])
+    print("b")
+    print(depla4[0])
+    print(depla4[1])
+
+    #Save list to excel
+
+    # df = pd.DataFrame(depla)
+    # de = pd.DataFrame(depla2)
+    # writer = pd.ExcelWriter('trajet.xlsx', engine='xlsxwriter')
+    # df.to_excel(writer, sheet_name='deplacement 1', index=False)
+    # de.to_excel(writer, sheet_name='deplacement 2', index=False)
+    # writer.save()
+    return 0
+
+def billeAvance():
     return 0
 
 if __name__ == '__main__':
