@@ -6,9 +6,11 @@ class Constant(object):
     rayon= 1 #métre
     angle_max=8.21 #degrée
     pourcentage_angle=0.75
-
+    rayon_socle = 0.14 #métre
     largeur_roue = 0.134 #métre (track_withd)
     longueur_roue = 0.25 #métre (wheelbase)
+    deltaT = 1/60
+    coefficient_friction = 0.25
 
 def vitesseMax(a_max):
     d1 = 0.3
@@ -52,7 +54,7 @@ def ligneDroiteAvance(xInital, yInitial, vInitial, distance, axe, signe):
         xPosActuel = xInital
         yPosActuel = yInitial
 
-    deltaT = 1/60
+    deltaT = Constant.deltaT
     while d < distance:
 
         if vitesseActuel > vMax:
@@ -81,7 +83,7 @@ def ligneDroiteArreter(pos_init, axe, signe): #axe entre 0 (x) et 1 (y), signe e
     a_max *= signe
     distance = [[], []] # [x, y]
     index = 0
-    deltaT = 1/60
+    deltaT = Constant.deltaT
 
     while signe*vitesseActuel > 0:
         distance[np.mod(axe + 1, 2)].append(pos_init[np.mod(axe + 1, 2)])
@@ -106,7 +108,7 @@ def getTournant(xInitial, yInitial, vitesseInitial, rayon, sens, orientation):
     vitesseMaxTan = vitesseMax(accMaxTan)
     d = 0
     vitesseActuel = vitesseInitial
-    deltaT = 1/60
+    deltaT = Constant.deltaT
     angleRadiant = 0
     array = [[xInitial], [yInitial]]
     xPosActuel = xInitial
@@ -156,6 +158,109 @@ def getTournant(xInitial, yInitial, vitesseInitial, rayon, sens, orientation):
 
     return array, vitesseActuel
 
+def billeAccelere(xInitial, yInitial, zInitial, acceleration, temps, axe, signe):  #axe entre 0 (x) et 1 (y), signe entre -1 (arière) et 1 (avant)
+    g=9.81
+    position = [[xInitial], [yInitial], [zInitial]]
+    h_max = Constant.rayon_socle-Constant.rayon_socle*np.sin(Constant.angle_max*Constant.pourcentage_angle)
+    l=Constant.rayon_socle*np.cos(Constant.angle_max*Constant.pourcentage_angle)
+    vitesseActuelle = 0
+    vMax = vitesseMax(acceleration)
+    if axe == 0:
+        if zInitial != 0 or xInitial != 0:
+            angle = np.arctan(zInitial / xInitial)
+        else:
+            angle = 0
+    else:
+        if zInitial != 0 or yInitial != 0:
+            angle = np.arctan(zInitial / xInitial)
+        else:
+            angle = 0
+
+    for index in range(1, int(temps*60)):
+        #x ou y
+        if axe == 0:
+            position[1].append(yInitial)
+        else:
+            position[0].append(xInitial)
+
+        if position[2][index - 1] >= h_max:
+            position[axe].append(position[axe][index-1])
+            position[2].append(h_max)
+            break
+        else:
+            #x ou y
+            accB = acceleration - g*np.cos(angle)-np.sin(angle)*Constant.coefficient_friction*g
+            if vitesseActuel > vMax:
+                if (vitesseActuel - vMax) / Constant.deltaT > accB:
+                    vitesseActuel = vitesseActuel - accB * Constant.deltaT
+                else:
+                    vitesseActuel = vMax
+
+            elif vitesseActuel < vMax:
+                if (vMax - vitesseActuel) / Constant.deltaT > accB:
+                    vitesseActuel = vitesseActuel + accB * Constant.deltaT
+                else:
+                    vitesseActuel = vMax
+            vitesseActuelle = vitesseActuelle + accB * Constant.deltaT
+            position[axe].append(position[axe][index-1] - signe*vitesseActuelle * Constant.deltaT)
+
+            #z
+            theta = np.arctan(position[axe][index]/Constant.rayon_socle)
+            hauteur_z = Constant.rayon_socle*np.cos(theta)
+            position[2].append(Constant.rayon_socle-hauteur_z)
+
+        if position[2][index] != 0 or position[axe][index] != 0:
+            angle = np.arctan(position[2][index]/position[axe][index])
+        else:
+            angle = 0
+
+    return position
+
+def billeDecelere(xInitial, yInitial, zInitial, acceleration, temps, axe, signe):  #axe entre 0 (x) et 1 (y),
+    g=9.81
+    position = [[xInitial], [yInitial], [zInitial]]
+    vitesseActuelle = 0
+    if axe == 0:
+        if zInitial != 0 or xInitial != 0:
+            angle = np.arctan(zInitial/ xInitial)
+        else:
+            angle = 0
+    else:
+        if zInitial != 0 or yInitial != 0:
+            angle = np.arctan(zInitial/ xInitial)
+        else:
+            angle = 0
+
+
+    for index in range(1, int(temps*60)):
+            #x ou y
+            if axe == 0:
+                position[1].append(yInitial)
+            else:
+                position[0].append(xInitial)
+
+            if position[2][index - 1] == 0:
+                t = temps-index/60
+                position += billeAccelere(position[0][index-1],position[1][index-1], position[2][index-1], acceleration, t, axe, -signe)
+                break
+            else:
+                # x ou y
+                accB = -acceleration - g*np.cos(angle)+np.sin(angle)*Constant.coefficient_friction*g
+                vitesseActuelle = vitesseActuelle + accB * Constant.deltaT
+                position[axe].append(position[axe][index-1] + signe * vitesseActuelle * Constant.deltaT)
+
+                #z
+                theta = np.arctan(position[axe][index] / Constant.rayon_socle)
+                hauteur_z = Constant.rayon_socle * np.cos(theta)
+                position[2].append(Constant.rayon_socle - hauteur_z)
+
+            if position[2][index] != 0 or position[axe][index] != 0:
+                angle = np.arctan(position[2][index] / position[axe][index])
+            else:
+                angle = 0
+
+    return position
+
 def calculTrajet():
     depla, vitesse = ligneDroiteAvance(0, 0, 0, 0.2, 0, 1)
 
@@ -164,6 +269,8 @@ def calculTrajet():
     depla3, vitesse = ligneDroiteAvance(depla2[0][len(depla2[0])-1], depla2[1][len(depla2[1])-1], vitesse2, 0.5, 1, -1)
 
     depla4 = ligneDroiteArreter([depla3[0][len(depla3[0])-1], depla3[1][len(depla3[1])-1]], 1, -1)
+
+    bille1 = billeAccelere(0, 0, 0, getAccelerationMax(), 10, len(depla[0])/60, 0, 1)
 
     print(depla[0])
     print(depla[1])
@@ -176,6 +283,10 @@ def calculTrajet():
     print("b")
     print(depla4[0])
     print(depla4[1])
+
+    print("\nBille:")
+    print(bille1[0])
+    print(bille1[2])
 
     #Save list to excel
 
