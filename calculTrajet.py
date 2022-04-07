@@ -6,7 +6,7 @@ class Constant(object):
     rayon= 1 #métre
     angle_max=8.21 #degrée
     pourcentage_angle=0.75
-    rayon_socle = 0.14 #métre
+    rayon_socle = 0.14*2 #métre
     largeur_roue = 0.134 #métre (track_withd)
     longueur_roue = 0.25 #métre (wheelbase)
     deltaT = 1/60
@@ -162,7 +162,7 @@ def billeAccelere(xInitial, yInitial, zInitial, acceleration, size, axe, signe):
     g=9.81
     position = [[xInitial], [yInitial], [zInitial]]
     hMax = Constant.rayon_socle-Constant.rayon_socle*np.sin(Constant.angle_max*Constant.pourcentage_angle)
-    lMax=Constant.rayon_socle*np.cos(Constant.angle_max*Constant.pourcentage_angle)
+    lMax=np.abs(Constant.rayon_socle*np.sin(Constant.angle_max*Constant.pourcentage_angle))
     vitesseActuelle = 0
     vMax = vitesseMax(acceleration)
     noAcceleration = False
@@ -259,13 +259,13 @@ def billeDecelere(xInitial, yInitial, zInitial, acceleration, size, axe, signe):
 
     return position
 
-def billeTournant(xInitial, yInitial, zInitial, acceleration, size, sens):  #sens entre -1 (gauche) et 1 (droite)
+def billeTournant(xInitial, yInitial, zInitial, acceleration, size, sens):  #sens entre -1 (droite) et 1 (gauche)
     g=9.81
     position = [[xInitial], [yInitial], [zInitial]]
     vitesseActuelle = 0
     derniereVitesse = 0
     hMax = Constant.rayon_socle - Constant.rayon_socle * np.sin(Constant.angle_max * Constant.pourcentage_angle)
-    lMax=Constant.rayon_socle*np.cos(Constant.angle_max*Constant.pourcentage_angle)
+    lMax=np.abs(Constant.rayon_socle*np.sin(Constant.angle_max*Constant.pourcentage_angle))
     rayon = np.sqrt(xInitial**2+yInitial**2)
     index = 1
     if xInitial == 0:
@@ -314,6 +314,16 @@ def billeTournant(xInitial, yInitial, zInitial, acceleration, size, sens):  #sen
             yPos = yPosActuel
             xPos =xPosActuel
 
+        # xPos, yPos = rotation(xPosActuel - xInitial, yPosActuel - xInitial)
+        # xPos, yPos = rotation(xPosActuel - xInitial, yPosActuel - xInitial)
+        # xPos, yPos = rotation(xPosActuel - xInitial, yPosActuel - xInitial)
+
+        if np.abs(angleRadiant - angleInit) >= np.pi / 2:
+            if np.abs(yPos) > np.abs(xPos):
+                xPos = 0
+            else:
+                yPos = 0
+
         position[0].append(xPos)
         position[1].append(yPos)
 
@@ -323,15 +333,18 @@ def billeTournant(xInitial, yInitial, zInitial, acceleration, size, sens):  #sen
 
 def calculTrajet():
     #avance - tourne à droite - avance
-    depla, vitesse = ligneDroiteAvance(0, 0, 0, 0.2, 0, 1)
-    depla2, vitesse2 = getTournant(depla[0][len(depla[0])-1], depla[1][len(depla[1])-1], vitesse, 0.5, 0, 3)
-    depla3, vitesse3 = ligneDroiteAvance(depla2[0][len(depla2[0])-1], depla2[1][len(depla2[1])-1], vitesse2, 0.5, 1, 1)
-    depla4 = ligneDroiteArreter([depla3[0][len(depla3[0])-1], depla3[1][len(depla3[1])-1]], 1, 1)
-
-    bille1 = billeAccelere(0, 0, 0, getAccelerationMax(), len(depla[0]), 0, 1)
-    bille2 = billeTournant(bille1[0][len(bille1[0])-1], bille1[1][len(bille1[0])-1], bille1[2][len(bille1[0])-1], getAccelerationMax(), len(depla2[0]), -1)
-    bille3 = billeAccelere(bille2[0][len(bille2[0]) - 1], bille2[1][len(bille2[0]) - 1], bille2[2][len(bille2[0]) - 1], getAccelerationMax(), len(depla3[0]), 1, -1)
-    bille4 = billeDecelere(bille3[0][len(bille3[0]) - 1], bille3[1][len(bille3[0]) - 1], bille3[2][len(bille3[0]) - 1], getAccelerationMax(), len(depla4[0]), 1, -1)
+    # depla, vitesse = ligneDroiteAvance(0, 0, 0, 0.2, 0, 1)
+    # depla2, vitesse2 = getTournant(depla[0][len(depla[0])-1], depla[1][len(depla[1])-1], vitesse, 0.5, 0, 3)
+    # depla3, vitesse3 = ligneDroiteAvance(depla2[0][len(depla2[0])-1], depla2[1][len(depla2[1])-1], vitesse2, 0.5, 1, 1)
+    # depla4 = ligneDroiteArreter([depla3[0][len(depla3[0])-1], depla3[1][len(depla3[1])-1]], 1, 1)
+    #
+    # bille1 = billeAccelere(0, 0, 0, getAccelerationMax(), len(depla[0]), 0, 1)
+    # bille2 = billeTournant(bille1[0][len(bille1[0])-1], bille1[1][len(bille1[0])-1], bille1[2][len(bille1[0])-1],
+    #                        getAccelerationMax(), len(depla2[0]), -1)
+    # bille3 = billeAccelere(bille2[0][len(bille2[0]) - 1], bille2[1][len(bille2[0]) - 1], bille2[2][len(bille2[0]) - 1],
+    #                        getAccelerationMax(), len(depla3[0]), 1, -1)
+    # bille4 = billeDecelere(bille3[0][len(bille3[0]) - 1], bille3[1][len(bille3[0]) - 1], bille3[2][len(bille3[0]) - 1],
+    #                        getAccelerationMax(), len(depla4[0]), 1, -1)
 
     # #avance - tourne à gauche - avance
     # depla, vitesse = ligneDroiteAvance(0, 0, 0, 0.2, 0, 1)
@@ -339,17 +352,41 @@ def calculTrajet():
     # depla3, vitesse3 = ligneDroiteAvance(depla2[0][len(depla2[0]) - 1], depla2[1][len(depla2[1]) - 1], vitesse2, 0.5, 1,1)
     # depla4 = ligneDroiteArreter([depla3[0][len(depla3[0]) - 1], depla3[1][len(depla3[1]) - 1]], 1, 1)
     #
+    # bille1 = billeAccelere(0, 0, 0, getAccelerationMax(), len(depla[0]), 0, 1)
+    # bille2 = billeTournant(bille1[0][len(bille1[0]) - 1], bille1[1][len(bille1[0]) - 1], bille1[2][len(bille1[0]) - 1],
+    #                        getAccelerationMax(), len(depla2[0]), 1)
+    # bille3 = billeAccelere(bille2[0][len(bille2[0]) - 1], bille2[1][len(bille2[0]) - 1], bille2[2][len(bille2[0]) - 1],
+    #                        getAccelerationMax(), len(depla3[0]), 1, 1)
+    # bille4 = billeDecelere(bille3[0][len(bille3[0]) - 1], bille3[1][len(bille3[0]) - 1], bille3[2][len(bille3[0]) - 1],
+    #                        getAccelerationMax(), len(depla4[0]), 1, 1)
+
     # #recule - tourne à gauche - recule
     # depla, vitesse = ligneDroiteAvance(0, 0, 0, 0.2, 0, -1)
     # depla2, vitesse2 = getTournant(depla[0][len(depla[0]) - 1], depla[1][len(depla[1]) - 1], vitesse, 0.5, 0, 1)
     # depla3, vitesse3 = ligneDroiteAvance(depla2[0][len(depla2[0]) - 1], depla2[1][len(depla2[1]) - 1], vitesse2, 0.5, 1,1)
     # depla4 = ligneDroiteArreter([depla3[0][len(depla3[0]) - 1], depla3[1][len(depla3[1]) - 1]], 1, 1)
     #
+    # bille1 = billeAccelere(0, 0, 0, getAccelerationMax(), len(depla[0]), 0, -1)
+    # bille2 = billeTournant(bille1[0][len(bille1[0]) - 1], bille1[1][len(bille1[0]) - 1], bille1[2][len(bille1[0]) - 1],
+    #                        getAccelerationMax(), len(depla2[0]), -1)
+    # bille3 = billeAccelere(bille2[0][len(bille2[0]) - 1], bille2[1][len(bille2[0]) - 1], bille2[2][len(bille2[0]) - 1],
+    #                        getAccelerationMax(), len(depla3[0]), 1, 1)
+    # bille4 = billeDecelere(bille3[0][len(bille3[0]) - 1], bille3[1][len(bille3[0]) - 1], bille3[2][len(bille3[0]) - 1],
+    #                        getAccelerationMax(), len(depla4[0]), 1, 1)
+
     # #recule - tourne à droite - recule
     # depla, vitesse = ligneDroiteAvance(0, 0, 0, 0.2, 0, -1)
     # depla2, vitesse2 = getTournant(depla[0][len(depla[0]) - 1], depla[1][len(depla[1]) - 1], vitesse, 0.5, 1, 1)
     # depla3, vitesse3 = ligneDroiteAvance(depla2[0][len(depla2[0]) - 1], depla2[1][len(depla2[1]) - 1], vitesse2, 0.5, 1,-1)
     # depla4 = ligneDroiteArreter([depla3[0][len(depla3[0]) - 1], depla3[1][len(depla3[1]) - 1]], 1, -1)
+    #
+    # bille1 = billeAccelere(0, 0, 0, getAccelerationMax(), len(depla[0]), 0, -1)
+    # bille2 = billeTournant(bille1[0][len(bille1[0]) - 1], bille1[1][len(bille1[0]) - 1], bille1[2][len(bille1[0]) - 1],
+    #                        getAccelerationMax(), len(depla2[0]), 1)
+    # bille3 = billeAccelere(bille2[0][len(bille2[0]) - 1], bille2[1][len(bille2[0]) - 1], bille2[2][len(bille2[0]) - 1],
+    #                        getAccelerationMax(), len(depla3[0]), 1, 1)
+    # bille4 = billeDecelere(bille3[0][len(bille3[0]) - 1], bille3[1][len(bille3[0]) - 1], bille3[2][len(bille3[0]) - 1],
+    #                        getAccelerationMax(), len(depla4[0]), 1, 1)
 
     print(depla[0])
     print(depla[1])
@@ -364,23 +401,23 @@ def calculTrajet():
     print(depla4[1])
 
     print("\nBille:")
-    print(bille1[0])
-    print(bille1[1])
-    print(bille1[2])
+    print([ float("{:0.5f}".format(x)) for x in bille1[0]])
+    print([float("{:0.5f}".format(x)) for x in bille1[1]])
+    print([float("{:0.8f}".format(x)) for x in bille1[2]])
     print("Tournant:")
-    print(bille2[0])
-    print(bille2[1])
-    print(bille2[2])
+    print([ float("{:0.5f}".format(x)) for x in bille2[0]])
+    print([float("{:0.5f}".format(x)) for x in bille2[1]])
+    print([float("{:0.5f}".format(x)) for x in bille2[2]])
     print("Avance:")
-    print(bille3[0])
-    print(bille3[1])
-    print(bille3[2])
+    print([float("{:0.5f}".format(x)) for x in bille3[0]])
+    print([float("{:0.5f}".format(x)) for x in bille3[1]])
+    print([float("{:0.5f}".format(x)) for x in bille3[2]])
     print("Stop:")
-    print(bille4[0])
-    print(bille4[1])
-    print(bille4[2])
-    #Save list to excel
+    print([float("{:0.5f}".format(x)) for x in bille4[0]])
+    print([float("{:0.5f}".format(x)) for x in bille4[1]])
+    print([float("{:0.5f}".format(x)) for x in bille4[2]])
 
+    #Save list to excel
     # df = pd.DataFrame(depla)
     # de = pd.DataFrame(depla2)
     # writer = pd.ExcelWriter('trajet.xlsx', engine='xlsxwriter')
